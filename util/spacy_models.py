@@ -12,6 +12,8 @@ def load_spacy_model(language: str = "English") -> Language:
         return load_spacy("fr_core_news_{}".format(MODEL_SIZE))
     elif language == "german":
         return load_spacy("de_core_news_{}".format(MODEL_SIZE))
+    elif language == "dutch":
+        return load_spacy("nl_core_news_{}".format(MODEL_SIZE))
     elif language == "greek":
         return load_spacy("el_core_news_{}".format(MODEL_SIZE))
     elif language == "italian":
