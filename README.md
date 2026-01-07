@@ -50,6 +50,26 @@ Enable/disable word embeddings for this dataset. Set to ```true``` to enable or 
 
 Grouping column for computing embeddings. Will be ignored if ```embeddings``` was not specified. **THIS WILL CAUSE AN ERROR IF IT DOES NOT MATCH A VALID COLUMN NAME**.
 
+#### compute_clustering
+
+Enable/disable UMAP and HDBSCAN clustering computation. Set to ```true``` to enable or ```false``` to disable. Requires ```embeddings``` to be enabled. Clustering will be computed after embeddings are complete.
+
+#### umap_n_neighbors
+
+UMAP n_neighbors parameter (default: 15). Controls how UMAP balances local versus global structure. Smaller values focus more on local structure.
+
+#### umap_min_dist
+
+UMAP min_dist parameter (default: 0.1). Controls how tightly UMAP packs points together. Smaller values create tighter clusters.
+
+#### hdbscan_min_cluster_size
+
+HDBSCAN min_cluster_size parameter (default: 5). The minimum number of samples in a cluster.
+
+#### hdbscan_min_samples
+
+HDBSCAN min_samples parameter (default: 3). The number of samples in a neighborhood for a point to be considered a core point.
+
 #### language
 
 Langauge the text was written in. Supported languages are listed below.

@@ -8,7 +8,12 @@
         "embed_col": "", 
         "language": "",
         "date_collected": "", 
-        "author": ""
+        "author": "",
+        "compute_clustering": false,
+        "umap_n_neighbors": 15,
+        "umap_min_dist": 0.1,
+        "hdbscan_min_cluster_size": 5,
+        "hdbscan_min_samples": 3
     },
     "tags": [
 

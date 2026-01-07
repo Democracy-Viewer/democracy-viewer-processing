@@ -81,6 +81,18 @@ def main():
         start_embeddings(df_split_raw.to_pandas(), embed_cols, TABLE_NAME, NUM_THREADS, BATCH_NUM)
         embed_time = time() - embed_time
         sql.complete_processing(engine, TABLE_NAME, "embeddings")
+        
+        # Run clustering if enabled and this is the final batch
+        if metadata.get("compute_clustering", False) and (BATCH_NUM is None or BATCH_NUM == metadata["num_batches"]):
+            from util.clustering_compute import start_clustering
+            print("\nStarting UMAP/HDBSCAN clustering...")
+            clustering_params = {
+                "umap_n_neighbors": metadata.get("umap_n_neighbors", 15),
+                "umap_min_dist": metadata.get("umap_min_dist", 0.1),
+                "hdbscan_min_cluster_size": metadata.get("hdbscan_min_cluster_size", 5),
+                "hdbscan_min_samples": metadata.get("hdbscan_min_samples", 3)
+            }
+            start_clustering(TABLE_NAME, embed_cols, NUM_THREADS, clustering_params)
     final_time = time() - start_time
     print("Total time: {}".format(humanize.precisedelta(dt.timedelta(seconds = final_time))))
     

@@ -150,3 +150,38 @@ def complete_batch(engine: Engine, table_name: str, batch_num: int):
     with engine.connect() as conn:
         conn.execute(query)
         conn.commit()
+
+# Register clustering results
+def register_clustering_result(engine: Engine, table_name: str, algorithm: str,
+                               params_hash: str, s3_path: str, 
+                               embed_col: str = None, embed_value: str = None,
+                               params: dict = None):
+    """Register UMAP or HDBSCAN clustering results."""
+    from sqlalchemy import text
+    import json
+    
+    params_json = json.dumps(params) if params else None
+    
+    query = text("""
+        INSERT INTO dataset_clustering_results 
+        (table_name, algorithm, params_hash, s3_path, embed_col, embed_value, params_json, status, computed_at)
+        VALUES (:table_name, :algorithm, :params_hash, :s3_path, :embed_col, :embed_value, :params_json, 'completed', NOW())
+        ON CONFLICT (table_name, algorithm, params_hash, COALESCE(embed_col, ''), COALESCE(embed_value, ''))
+        DO UPDATE SET 
+            s3_path = :s3_path,
+            params_json = :params_json,
+            status = 'completed',
+            computed_at = NOW()
+    """)
+    
+    with engine.connect() as conn:
+        conn.execute(query, {
+            "table_name": table_name,
+            "algorithm": algorithm,
+            "params_hash": params_hash,
+            "s3_path": s3_path,
+            "embed_col": embed_col,
+            "embed_value": embed_value,
+            "params_json": params_json
+        })
+        conn.commit()
