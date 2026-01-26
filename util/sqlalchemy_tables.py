@@ -41,6 +41,9 @@ class DatasetMetadata(SQL_BASE):
     reprocess_start = Column("reprocess_start", Boolean)
     num_batches = Column("num_batches", Integer)
     batches_done = Column("batches_done", Integer)
+    collocation_extraction = Column("collocation_extraction", Boolean)
+    lemmatize_collocations = Column("lemmatize_collocations", Boolean)
+    collocations_done = Column("collocations_done", Boolean)
     
 class Tags(SQL_BASE):
     __tablename__ = "tags"

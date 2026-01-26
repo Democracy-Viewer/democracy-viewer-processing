@@ -58,6 +58,33 @@ def main():
     upload_time = time() - upload_time
     # sql.complete_processing(engine, TABLE_NAME, "tokens")
 
+    # Extract collocations if enabled (only works with lemma mode)
+    if metadata.get("collocation_extraction", False):
+        print("Processing collocations...")
+        try:
+            # Deactivate old collocations if reprocessing
+            if BATCH_NUM is None or BATCH_NUM == 1:
+                s3.delete_collocations(TABLE_NAME)
+                sql.deactivate_processing(engine, TABLE_NAME, "collocations")
+
+            # Use original dataframe (df) since we need the raw text
+            df_collocations = processor.extract_collocations(df)
+
+            # Upload collocations to S3
+            print("Uploading collocations...")
+            s3.upload(df_collocations, "collocations", TABLE_NAME, BATCH_NUM)
+            print(f"Collocations uploaded: {len(df_collocations)} pairs")
+
+            # Mark collocations as complete
+            sql.complete_processing(engine, TABLE_NAME, "collocations")
+        except ValueError as e:
+            # if preprocessing_type is not 'lemma'
+            print(f"Warning: Skipping collocation extraction - {e}")
+        except Exception as e:
+            print(f"Error during collocation extraction: {e}")
+            import traceback
+            traceback.print_exc()
+
     if metadata["embeddings"]:
         # Save data frame to output file in case of crash
         # df_split_raw.write_parquet("{}_split_raw.parquet".format(TABLE_NAME), use_pyarrow=True, compression="zstd")

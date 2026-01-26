@@ -9,6 +9,7 @@ from time import time
 from util.spacy_models import load_spacy_model
 import util.s3 as s3
 import util.word_processing as wp
+from util.collocation_extraction import process_adj_noun_row
 
 class DataProcessing:
     def __init__(self, metadata: dict, num_threads: int, table_name: str):
@@ -185,3 +186,113 @@ class DataProcessing:
         
         print("Data processing: {}".format(humanize.precisedelta(dt.timedelta(seconds = time() - start))))
         return split_data, df_split_raw
+
+    # Process collocations for a single row
+    def process_collocation_sentence(self, row):
+        """Process a single row to extract adjective-noun collocations"""
+        text = str(row["text"])
+
+        # Use the existing collocation extraction function
+        # Get lemmatize setting from metadata if available, default to True
+        lemmatize = self.metadata.get("lemmatize_collocations", True)
+        df_collocations = process_adj_noun_row(
+            {"record_id": row["record_id"], "col": row["col"], "text": text},
+            self.nlp,
+            lemmatize=lemmatize,
+            clean_text=True
+        )
+
+        return df_collocations
+
+    def process_collocation_chunk(self, df: pl.DataFrame, i = 0) -> pl.DataFrame:
+        """Process a chunk of data for collocation extraction"""
+        df_list: list[pl.DataFrame] = []
+
+        start_time = time()
+        prev_time = start_time
+        for j, row in enumerate(df.iter_rows(named = True)):
+            df2 = self.process_collocation_sentence(row)
+            if len(df2) > 0:
+                df_list.append(df2)
+
+            curr_time = time()
+            if curr_time - prev_time > self.num_threads:
+                prev_time = curr_time
+                total_time = curr_time - start_time
+                its_sec = (j + 1) / total_time
+                time_left = humanize.precisedelta(dt.timedelta(seconds = (len(df) - j + 1) / its_sec))
+                print("Thread #{}: {}/{} = {}%. {} it/sec. Estimated {} remaining".format("{}".format(i+1).zfill(2), j + 1, len(df), round(100 * (j + 1) / len(df), 2), round(its_sec, 2), time_left))
+            if j + 1 == len(df):
+                print("Thread #{}: Done. Total time = {}".format("{}".format(i+1).zfill(2), humanize.precisedelta(dt.timedelta(seconds = time() - start_time))))
+
+        if len(df_list) == 0:
+            # Return empty DataFrame with correct schema
+            return pl.DataFrame(schema={
+                "record_id": pl.Utf8,
+                "col": pl.Utf8,
+                "verb_neg": pl.Utf8,
+                "neg_det": pl.Utf8,
+                "adjective": pl.Utf8,
+                "noun": pl.Utf8,
+                "pair_text": pl.Utf8
+            })
+
+        return pl.concat(df_list)
+
+    def process_collocation_thread(self, arg: tuple[int, pl.DataFrame]) -> pl.DataFrame:
+        """Thread worker for collocation extraction"""
+        i, df = arg
+        return self.process_collocation_chunk(df, i)
+
+    def extract_collocations(self, df: pl.DataFrame):
+        """
+        Extract adjective-noun collocations from text data using multithread processing.
+        Only works when preprocessing_type is 'lemma' (requires spaCy).
+
+        Args:
+            df: Polars DataFrame with 'record_id', 'col', and 'text' columns
+
+        Returns:
+            Polars DataFrame with columns: record_id, col, verb_neg, neg_det, adjective, noun, pair_text
+        """
+        # Validate that we're in lemma mode
+        if self.metadata["preprocessing_type"] != "lemma":
+            raise ValueError(
+                f"Collocation extraction requires preprocessing_type='lemma', "
+                f"but got '{self.metadata['preprocessing_type']}'. "
+                f"Collocations need spaCy for POS tagging and dependency parsing."
+            )
+
+        start = time()
+        print("Starting collocation extraction...")
+
+        # Multithread processing
+        chunks = list(enumerate(df.iter_slices(len(df) // self.num_threads + 1)))
+        with mp.get_context("spawn").Pool(self.num_threads) as pool:
+            results = pool.map(self.process_collocation_thread, chunks, 1)
+            pool.terminate()
+        collocation_list = [result for result in results if len(result) > 0]
+
+        print("Collocation extraction complete. Total time = {}".format(humanize.precisedelta(dt.timedelta(seconds = time() - start))))
+
+        if len(collocation_list) == 0:
+            print("Warning: No collocations found in dataset")
+            return pl.DataFrame(schema={
+                "record_id": pl.Utf8,
+                "col": pl.Utf8,
+                "verb_neg": pl.Utf8,
+                "neg_det": pl.Utf8,
+                "adjective": pl.Utf8,
+                "noun": pl.Utf8,
+                "pair_text": pl.Utf8
+            })
+
+        print("Merging chunks...")
+        collocation_data = pl.concat(collocation_list)
+
+        print("Collocation processing complete: {} pairs found. Total time = {}".format(
+            len(collocation_data),
+            humanize.precisedelta(dt.timedelta(seconds = time() - start))
+        ))
+
+        return collocation_data
