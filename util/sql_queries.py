@@ -1,7 +1,7 @@
 # Database Interaction
 from sqlalchemy import Engine, MetaData, select, update, insert
 # Update directory to import util
-from util.sqlalchemy_tables import DatasetMetadata, DatasetEmbedCols, DatasetTextCols, Users
+from util.sqlalchemy_tables import DatasetMetadata, DatasetEmbedCols, DatasetTextCols, Users, DatasetClusteringResults
 
 # Get all of the metadata of a dataset
 def get_metadata(engine: Engine, meta: MetaData, table_name: str) -> dict:
@@ -184,4 +184,28 @@ def register_clustering_result(engine: Engine, table_name: str, algorithm: str,
             "embed_value": embed_value,
             "params_json": params_json
         })
+        conn.commit()
+
+# Register clustering results in database
+def register_clustering_result(engine: Engine, table_name: str, method: str,
+                               param_hash: str, s3_path: str, params: dict,
+                               embed_col: str = None, embed_value: str = None) -> None:
+    """Register clustering computation results in database."""
+    query = insert(DatasetClusteringResults).values(
+        table_name=table_name,
+        method=method,
+        param_hash=param_hash,
+        s3_path=s3_path,
+        embed_col=embed_col,
+        embed_value=embed_value,
+        n_neighbors=params.get("n_neighbors"),
+        min_dist=str(params.get("min_dist")),
+        min_cluster_size=params.get("min_cluster_size"),
+        min_samples=params.get("min_samples"),
+        metric=params.get("metric"),
+        status="completed"
+    )
+    
+    with engine.connect() as conn:
+        conn.execute(query)
         conn.commit()

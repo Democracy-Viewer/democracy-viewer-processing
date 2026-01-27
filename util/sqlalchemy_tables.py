@@ -56,4 +56,19 @@ class DatasetEmbedCols(SQL_BASE):
     __tablename__ = "dataset_embed_cols"
     table_name = Column("table_name", String(100), ForeignKey(DatasetMetadata.table_name), primary_key = True)
     col = Column("col", String(50), primary_key = True)
+
+class DatasetClusteringResults(SQL_BASE):
+    __tablename__ = "dataset_clustering_results"
+    table_name = Column("table_name", String(100), ForeignKey(DatasetMetadata.table_name), primary_key=True)
+    method = Column("method", String(50), primary_key=True)
+    param_hash = Column("param_hash", String(64), primary_key=True)
+    embed_col = Column("embed_col", String(50))
+    embed_value = Column("embed_value", String(100))
+    s3_path = Column("s3_path", String(500))
+    n_neighbors = Column("n_neighbors", Integer)
+    min_dist = Column("min_dist", String(10))
+    min_cluster_size = Column("min_cluster_size", Integer)
+    min_samples = Column("min_samples", Integer)
+    metric = Column("metric", String(20))
+    status = Column("status", String(20))
     

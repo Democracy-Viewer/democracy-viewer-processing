@@ -48,12 +48,15 @@ def get_tokens_for_clustering(table_name: str, embed_col: str = None, embed_valu
         df_raw_filtered = df_raw[df_raw[embed_col] == embed_value][['record_id']]
         
         # Join to get only tokens for filtered records
-        df_tokens = df_tokens.merge(df_raw_filtered, on='record_id')
+        df_tokens = df_tokens.merge(df_raw_filtered, on='record_id', how='inner')
     
     return df_tokens
 
-# Get unique values for an embed column
+# Get unique values for an embedding column
 def get_unique_embed_values(table_name: str, embed_col: str, token: str | None = None) -> list:
+    """Get unique values for an embedding column from S3."""
+    df_raw = s3.download("datasets", table_name, None, token).collect()
+    return df_raw[embed_col].unique().to_list()
     """Get unique values for a grouping column."""
     df_raw = s3.download("datasets", table_name, None, token)
     unique_vals = df_raw.select(embed_col).unique().collect().to_series().to_list()
