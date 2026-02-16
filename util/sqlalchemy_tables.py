@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, BigInteger, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, BigInteger, Date, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 
 SQL_BASE = declarative_base()
@@ -27,6 +27,11 @@ class DatasetMetadata(SQL_BASE):
     clicks = Column("clicks", Integer)
     preprocessing_type = Column("preprocessing_type", String(5))
     embeddings = Column("embeddings", Boolean)
+    compute_clustering = Column("compute_clustering", Boolean)
+    umap_n_neighbors = Column("umap_n_neighbors", Integer)
+    umap_min_dist = Column("umap_min_dist", Float)
+    hdbscan_min_cluster_size = Column("hdbscan_min_cluster_size", Integer)
+    hdbscan_min_samples = Column("hdbscan_min_samples", Integer)
     date_posted = Column("date_posted", Date)
     embed_col = Column("embed_col", String(50))
     language = Column("language", String(20))
