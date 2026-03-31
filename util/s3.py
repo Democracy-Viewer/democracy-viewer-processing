@@ -37,6 +37,7 @@ def upload(df: pl.DataFrame | pd.DataFrame, folder: str, name: str, batch: int |
     # Convert file to parquet
     start_time = time()
     local_file = "{}/{}/{}.parquet".format(BASE_PATH, folder, name)
+    os.makedirs("{}/{}".format(BASE_PATH, folder), exist_ok=True)
     if type(df) == pl.DataFrame:
         df.write_parquet(local_file, use_pyarrow=True, compression="zstd")
     elif type(df) == pd.DataFrame:
