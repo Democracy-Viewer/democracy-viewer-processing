@@ -202,6 +202,13 @@ class DataProcessing:
             clean_text=True
         )
 
+        # Remove pairs where either word is a stop word
+        if len(df_collocations) > 0 and self.stop_words:
+            stop_words_set = set(self.stop_words)
+            df_collocations = df_collocations.filter(
+                ~pl.col("word1").is_in(stop_words_set) & ~pl.col("word2").is_in(stop_words_set)
+            )
+
         return df_collocations
 
     def process_collocation_chunk(self, df: pl.DataFrame, i = 0) -> pl.DataFrame:
@@ -230,10 +237,10 @@ class DataProcessing:
             return pl.DataFrame(schema={
                 "record_id": pl.Utf8,
                 "col": pl.Utf8,
-                "verb_neg": pl.Utf8,
-                "neg_det": pl.Utf8,
-                "adjective": pl.Utf8,
-                "noun": pl.Utf8,
+                "pair_type": pl.Utf8,
+                "word1": pl.Utf8,
+                "word2": pl.Utf8,
+                "negation": pl.Utf8,
                 "pair_text": pl.Utf8
             })
 
@@ -280,10 +287,10 @@ class DataProcessing:
             return pl.DataFrame(schema={
                 "record_id": pl.Utf8,
                 "col": pl.Utf8,
-                "verb_neg": pl.Utf8,
-                "neg_det": pl.Utf8,
-                "adjective": pl.Utf8,
-                "noun": pl.Utf8,
+                "pair_type": pl.Utf8,
+                "word1": pl.Utf8,
+                "word2": pl.Utf8,
+                "negation": pl.Utf8,
                 "pair_text": pl.Utf8
             })
 
